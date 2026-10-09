@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plagiarism Checker</title>
+<style>
+:root{--bg:#f3f6f8;--panel:#fff;--ink:#16232c;--muted:#5b6b76;--line:#d5dde2;--accent:#0f5c63;
+--exact:#ffd54a;--para:#9fd3f0;--bad:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,sans-serif}
+header{padding:20px 24px 0;max-width:1100px;margin:auto}
+h1{font-size:1.5rem;margin:0 0 4px}
+header p{margin:0;color:var(--muted)}
+nav{display:flex;gap:4px;margin-top:16px;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;padding:10px 16px;font:inherit;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
+nav button.on{color:var(--ink);border-color:var(--accent);font-weight:600}
+main{max-width:1100px;margin:auto;padding:20px 24px 60px}
+section{display:none}section.on{display:block}
+.grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:20px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+textarea,input[type=text]{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+textarea{min-height:240px;resize:vertical}
+label{display:block;font-weight:600;margin:12px 0 6px}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer;margin-top:14px}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.ghost{background:none;color:var(--bad);padding:4px 8px;margin:0;font-weight:500}
+:focus-visible{outline:3px solid #f08c00;outline-offset:2px}
+.msg{color:var(--bad);margin-top:10px}
+.score{display:flex;align-items:baseline;gap:10px}
+.score b{font-size:3rem;line-height:1}
+.pill{padding:2px 10px;border-radius:99px;font-size:.85rem;font-weight:600}
+.low{background:#d8f0dd;color:#14532d}.med{background:#fff0c2;color:#6b4e00}.high{background:#fcd9d6;color:#7a1510}
+.legend{display:flex;gap:16px;color:var(--muted);font-size:.9rem;margin:10px 0}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+#doc{font:1.05rem/1.75 Georgia,"Times New Roman",serif;white-space:pre-wrap;max-height:420px;overflow:auto;border-top:1px solid var(--line);padding-top:12px}
+mark{cursor:pointer;color:inherit;border-radius:2px;padding:0 1px}
+mark.exact{background:var(--exact)}
+mark.paraphrase{background:var(--para);border-bottom:2px dashed #2478a8}
+mark.sel{outline:2px solid var(--ink)}
+#cmp{border-left:4px solid var(--accent);padding:8px 12px;margin-top:12px;background:#f6f9fa}
+#cmp h4{margin:0 0 6px}
+#cmp blockquote{margin:6px 0;font-family:Georgia,serif}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.library-warning{margin:16px 0;padding:14px 16px;border:1px solid #e8d49a;border-radius:10px;background:#fff8e6;color:#604b16}
+.library-warning p{margin:0 0 8px}
+.library-warning .btn{margin-top:0}
+ul.src{list-style:none;padding:0;margin:8px 0 0}
+ul.src li{margin:8px 0}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+.note{color:var(--muted);font-size:.9rem}
+.hidden{display:none!important}
+.auth-page{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(380px,.9fr);gap:clamp(28px,7vw,100px);align-items:center;padding:clamp(24px,6vw,88px);background:radial-gradient(ellipse at 15% 10%,#e2f0ef 0,transparent 38%),var(--bg)}
+.auth-page section{display:block}
+.auth-art{max-width:620px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:12px;font-weight:750;font-size:1.15rem;letter-spacing:-.03em}
+.brand-icon{width:42px;height:42px;display:grid;place-items:center;background:#0f5c63;color:white;border-radius:13px}
+.brand-icon svg{width:23px;height:23px}
+.auth-copy{margin:clamp(46px,9vh,104px) 0 48px}
+.eyebrow{color:var(--accent);font-size:.76rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.auth-copy h1{max-width:580px;font-size:clamp(2.5rem,5.3vw,4.7rem);letter-spacing:-.065em;line-height:1.03;margin:14px 0 20px}
+.auth-copy p{max-width:470px;color:var(--muted);font-size:1.08rem}
+.feature-list{display:grid;gap:14px;color:#31434c}
+.feature{display:flex;align-items:center;gap:12px}
+.feature-icon{width:34px;height:34px;display:grid;place-items:center;border:1px solid #cfdddc;border-radius:11px;color:var(--accent);font-weight:800}
+.auth-card{width:min(100%,460px);margin:auto;background:white;border:1px solid #e0e7e9;border-radius:22px;padding:clamp(24px,4vw,42px);box-shadow:0 24px 70px #1b343a12}
+.auth-card h2{margin:0;font-size:1.7rem;letter-spacing:-.04em}
+.auth-subtitle{margin:5px 0 24px;color:var(--muted)}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;padding:4px;background:#f1f4f5;border-radius:10px;margin-bottom:22px}
+.auth-tabs button{padding:9px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-weight:650;cursor:pointer}
+.auth-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px #172b321a}
+.auth-form[hidden]{display:none}
+.auth-form label{margin:15px 0 6px;font-size:.9rem}
+.auth-form input{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font:inherit}
+.auth-form input:focus{outline:3px solid #0f5c6330;border-color:var(--accent)}
+.password-hint{margin:6px 0 0;color:var(--muted);font-size:.8rem}
+.auth-submit{width:100%;min-height:48px;margin-top:22px;border:0;border-radius:9px;background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.auth-submit:hover,.btn:hover{filter:brightness(1.08)}
+.auth-submit:disabled{opacity:.6;cursor:wait}
+.auth-error{min-height:22px;margin:10px 0 0;color:var(--bad);font-size:.9rem}
+.auth-privacy{margin:20px 0 0;text-align:center;color:var(--muted);font-size:.8rem}
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 24px 0;max-width:1100px;margin:auto}
+.app-header h1{font-size:1.5rem;margin:0 0 4px}
+.app-header p{margin:0;color:var(--muted)}
+.app-actions{display:flex;align-items:center;gap:12px}
+.welcome{color:var(--muted);font-size:.92rem}
+.logout{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 13px;font:inherit;font-weight:600;color:var(--ink);cursor:pointer}
+nav{margin-top:18px}
+main{padding-top:22px}
+.card{border-radius:12px;padding:20px;box-shadow:0 5px 20px #16232c08}
+.btn{border-radius:8px}
+@media(max-width:780px){.auth-page{grid-template-columns:1fr;gap:28px;padding:28px 18px}.auth-art{max-width:500px}.auth-copy{margin:32px 0 0}.auth-copy h1{font-size:2.7rem}.feature-list{display:none}.auth-card{max-width:500px}.app-header{padding:18px 18px 0;align-items:flex-start}.welcome{display:none}}
+</style>
+</head>
+<body>
+<div id="auth-screen" class="auth-page">
+  <section class="auth-art" aria-label="About ClearCheck">
+    <div class="brand"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3.75h7l4.25 4.3v12.2H7a2 2 0 0 1-2-2v-12.5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8"/><path d="M14 4v5h4M8.5 14h7M8.5 17.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>ClearCheck</div>
+    <div class="auth-copy">
+      <div class="eyebrow">Write with confidence</div>
+      <h1>Know what makes your work yours.</h1>
+      <p>Review matching passages clearly, compare against your own sources, and make informed edits before you submit.</p>
+    </div>
+    <div class="feature-list">
+      <div class="feature"><span class="feature-icon">01</span><span>See copied wording and similar passages highlighted</span></div>
+      <div class="feature"><span class="feature-icon">02</span><span>Keep a private library of your reference documents</span></div>
+      <div class="feature"><span class="feature-icon">03</span><span>Your reference library is saved for your account</span></div>
+    </div>
+  </section>
+  <section class="auth-card" aria-label="Account access">
+    <h2 id="auth-title">Welcome back</h2>
+    <p class="auth-subtitle" id="auth-subtitle">Sign in to continue to your workspace.</p>
+    <div class="auth-tabs" role="tablist" aria-label="Account action">
+      <button type="button" class="on" data-auth-mode="login" role="tab" aria-selected="true">Sign in</button>
+      <button type="button" data-auth-mode="register" role="tab" aria-selected="false">Create account</button>
+    </div>
+    <form id="login-form" class="auth-form">
+      <label for="login-email">Email address</label>
+      <input id="login-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com">
+      <label for="login-password">Password</label>
+      <input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="256" placeholder="Your password">
+      <button class="auth-submit" type="submit">Sign in</button>
+    </form>
+    <form id="register-form" class="auth-form" hidden>
+      <label for="register-name">Your name</label>
+      <input id="register-name" name="name" autocomplete="name" required maxlength="100" placeholder="Alex Morgan">
+      <label for="register-email">Email address</label>
+      <input id="register-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com">
+      <label for="register-password">Create a password</label>
+      <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="256" placeholder="At least 12 characters">
+      <p class="password-hint">Use at least 12 characters for a stronger password.</p>
+      <button class="auth-submit" type="submit">Create my account</button>
+    </form>
+    <div id="auth-error" class="auth-error" role="alert" aria-live="polite"></div>
+    <p class="auth-privacy">Your password is securely hashed and never stored as plain text.</p>
+  </section>
+</div>
+<div id="app" class="hidden">
+<header class="app-header">
+  <div>
+  <h1>Plagiarism checker</h1>
+  <p>Compare your writing against your private reference library.</p>
+  </div>
+  <div class="app-actions"><span class="welcome" id="welcome"></span><button type="button" class="logout" id="logout">Sign out</button></div>
+</header>
+<div style="max-width:1100px;margin:auto;padding:0 24px">
+  <nav>
+    <button class="on" data-tab="check">Check a document</button>
+    <button data-tab="corpus">Reference library</button>
+  </nav>
+</div>
+<main>
+<section id="check" class="on">
+  <div class="grid">
+    <div class="card">
+      <label for="text">Paste text</label>
+      <textarea id="text" placeholder="Paste the text you want to check"></textarea>
+      <label for="file">or upload a file (PDF, DOCX, TXT, up to 10 MB)</label>
+      <input type="file" id="file" accept=".pdf,.docx,.txt">
+      <button class="btn" id="run">Check for plagiarism</button>
+      <div class="msg" id="err" role="alert"></div>
+    </div>
+    <div class="card hidden" id="result">
+      <div id="library-warning" class="library-warning hidden" role="status">
+        <p><strong>Your reference library is empty.</strong> This check found no matches because there are no source documents to compare against. Add reference documents first; this checker does not search the web.</p>
+        <button type="button" class="btn" id="go-library">Add reference documents</button>
+      </div>
+      <div class="score"><b id="pct">0%</b><span class="pill" id="band"></span><span class="note" id="words"></span></div>
+      <div class="bar" style="margin-top:10px"><i id="barfill" style="width:0"></i></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--exact)"></i>Copied wording</span>
+        <span><i class="sw" style="background:var(--para)"></i>Similar meaning</span>
+      </div>
+      <div id="doc"></div>
+      <div id="cmp" class="hidden"></div>
+      <h3>Sources</h3>
+      <ul class="src" id="sources"></ul>
+      <p class="note">A high score shows overlap, not proof of plagiarism. Review each match, including quotes and citations, before deciding.</p>
+    </div>
+  </div>
+</section>
+
+<section id="corpus">
+  <div class="grid">
+    <div class="card">
+      <label for="ctitle">Title</label>
+      <input type="text" id="ctitle" placeholder="e.g. Wikipedia: Photosynthesis">
+      <label for="ctext">Paste source text</label>
+      <textarea id="ctext" style="min-height:160px"></textarea>
+      <label for="cfile">or upload a file</label>
+      <input type="file" id="cfile" accept=".pdf,.docx,.txt">
+      <button class="btn" id="add">Add to library</button>
+      <div class="msg" id="cerr" role="alert"></div>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Document</th><th>Words</th><th></th></tr></thead><tbody id="clist"></tbody></table>
+      <p class="note" id="cempty">Your library is empty. Add source documents to compare against.</p>
+    </div>
+  </div>
+</section>
+</main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function setAuthMode(mode) {
+  const registering = mode === 'register';
+  $('#login-form').hidden = registering;
+  $('#register-form').hidden = !registering;
+  $('#auth-title').textContent = registering ? 'Create your account' : 'Welcome back';
+  $('#auth-subtitle').textContent = registering
+    ? 'Start checking your work with a private reference library.'
+    : 'Sign in to continue to your workspace.';
+  $('#auth-error').textContent = '';
+  document.querySelectorAll('[data-auth-mode]').forEach(button => {
+    const selected = button.dataset.authMode === mode;
+    button.classList.toggle('on', selected);
+    button.setAttribute('aria-selected', String(selected));
+  });
+  $('#go-library').onclick = () => document.querySelector('nav button[data-tab="corpus"]').click();
+}
+
+function showWorkspace(user) {
+  $('#auth-screen').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  $('#welcome').textContent = user.name;
+  loadCorpus();
+}
+
+function showSignIn(message = '') {
+  $('#app').classList.add('hidden');
+  $('#auth-screen').classList.remove('hidden');
+  setAuthMode('login');
+  $('#auth-error').textContent = message;
+}
+
+document.querySelectorAll('[data-auth-mode]').forEach(button => {
+  button.onclick = () => setAuthMode(button.dataset.authMode);
+});
+
+async function submitAuth(form, endpoint, buttonLabel) {
+  const button = form.querySelector('button[type="submit"]');
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = buttonLabel;
+  $('#auth-error').textContent = '';
+  try {
+    const user = await post(endpoint, new FormData(form));
+    form.reset();
+    showWorkspace(user);
+  } catch (error) {
+    $('#auth-error').textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+}
+
+$('#login-form').onsubmit = event => {
+  event.preventDefault();
+  submitAuth(event.currentTarget, '/api/auth/login', 'Signing in…');
+};
+$('#register-form').onsubmit = event => {
+  event.preventDefault();
+  submitAuth(event.currentTarget, '/api/auth/register', 'Creating account…');
+};
+$('#logout').onclick = async () => {
+  try {
+    await post('/api/auth/logout', new FormData());
+    showSignIn();
+  } catch (error) {
+    $('#err').textContent = error.message;
+  }
+};
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === b.dataset.tab));
+  if (b.dataset.tab === 'corpus') loadCorpus();
+});
+
+async function post(url, fd) {
+  const r = await fetch(url, {method: 'POST', body: fd});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.detail || 'Something went wrong.');
+  return j;
+}
+
+$('#run').onclick = async () => {
+  $('#err').textContent = '';
+  const fd = new FormData();
+  fd.append('text', $('#text').value);
+  if ($('#file').files[0]) fd.append('file', $('#file').files[0]);
+  $('#run').disabled = true; $('#run').textContent = 'Checking…';
+  try { render(await post('/api/check', fd)); }
+  catch (e) { $('#err').textContent = e.message; }
+  finally { $('#run').disabled = false; $('#run').textContent = 'Check for plagiarism'; }
+};
+
+function render(d) {
+  $('#result').classList.remove('hidden');
+  $('#library-warning').classList.toggle('hidden', d.reference_count !== 0);
+  $('#pct').textContent = d.score + '%';
+  $('#barfill').style.width = Math.min(d.score, 100) + '%';
+  $('#words').textContent = d.total_words + ' words checked';
+  const band = $('#band');
+  const [cls, label] = d.score < 15 ? ['low', 'Low overlap'] : d.score < 40 ? ['med', 'Moderate overlap'] : ['high', 'High overlap'];
+  band.className = 'pill ' + cls; band.textContent = label;
+
+  // build highlighted document (matches are sorted; skip overlaps)
+  let html = '', pos = 0;
+  d.matches.forEach((m, i) => {
+    if (m.start < pos) return;
+    html += esc(d.text.slice(pos, m.start));
+    html += `<mark class="${m.type}" data-i="${i}" tabindex="0">${esc(d.text.slice(m.start, m.end))}</mark>`;
+    pos = m.end;
+  });
+  $('#doc').innerHTML = html + esc(d.text.slice(pos));
+  $('#cmp').classList.add('hidden');
+  document.querySelectorAll('mark').forEach(el => {
+    const show = () => {
+      document.querySelectorAll('mark.sel').forEach(x => x.classList.remove('sel'));
+      el.classList.add('sel');
+      const m = d.matches[el.dataset.i];
+      $('#cmp').classList.remove('hidden');
+      $('#cmp').innerHTML = `<h4>${m.type === 'exact' ? 'Copied wording' : 'Similar meaning (' + Math.round(m.score * 100) + '% similar)'} · ${esc(m.source_title)}</h4>
+        <div class="note">Your text</div><blockquote>${esc(d.text.slice(m.start, m.end))}</blockquote>
+        <div class="note">Source text</div><blockquote>${esc(m.source_text)}</blockquote>`;
+    };
+    el.onclick = show;
+    el.onkeydown = e => { if (e.key === 'Enter') show(); };
+  });
+
+  $('#sources').innerHTML = d.sources.length
+    ? d.sources.map(s => `<li><div>${esc(s.title)} <b>${s.percent}%</b></div><div class="bar"><i style="width:${Math.min(s.percent,100)}%"></i></div></li>`).join('')
+    : '<li class="note">No matching sources found in your library.</li>';
+}
+
+async function loadCorpus() {
+  const list = await (await fetch('/api/corpus')).json();
+  $('#cempty').classList.toggle('hidden', list.length > 0);
+  $('#clist').innerHTML = list.map(d => `<tr><td>${esc(d.title)}</td><td>${d.words}</td>
+    <td><button class="btn ghost" data-id="${d.id}">Delete</button></td></tr>`).join('');
+  document.querySelectorAll('#clist button').forEach(b => b.onclick = async () => {
+    await fetch('/api/corpus/' + b.dataset.id, {method: 'DELETE'}); loadCorpus();
+  });
+}
+
+$('#add').onclick = async () => {
+  $('#cerr').textContent = '';
+  const fd = new FormData();
+  fd.append('title', $('#ctitle').value.trim() || 'Untitled');
+  fd.append('text', $('#ctext').value);
+  if ($('#cfile').files[0]) fd.append('file', $('#cfile').files[0]);
+  try {
+    await post('/api/corpus', fd);
+    $('#ctitle').value = ''; $('#ctext').value = ''; $('#cfile').value = '';
+    loadCorpus();
+  } catch (e) { $('#cerr').textContent = e.message; }
+};
+
+async function startApp() {
+  try {
+    const response = await fetch('/api/auth/me');
+    if (response.status === 401) {
+      showSignIn();
+      return;
+    }
+    if (!response.ok) throw new Error('Could not connect to the app. Please refresh and try again.');
+    showWorkspace(await response.json());
+  } catch (error) {
+    showSignIn(error.message);
+  }
+}
+startApp();
+</script>
+</body>
+</html>
