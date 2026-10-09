@@ -13,7 +13,10 @@ from fastapi.staticfiles import StaticFiles
 from .engine import Corpus, check, extract_text
 
 BASE = Path(__file__).parent
-DB_PATH = BASE.parent / "plagiarism.db"
+import os
+from pathlib import Path
+
+DB_PATH = Path(os.environ.get("DB_PATH", "/tmp/plagiarism.db"))
 MAX_BYTES = 10 * 1024 * 1024
 SESSION_DAYS = 7
 PASSWORD_ITERATIONS = 600_000
